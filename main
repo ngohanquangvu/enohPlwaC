@@ -1,0 +1,120 @@
+def batdongsan24hcomvn():
+    list_phone = []
+    url = "https://batdongsan24h.vn/api/property/search?page=1"
+    while True:
+        a = requests.get(url).json()
+        for i in a['data']['properties']:
+            for j in i['contact']['phone']:
+                list_phone.append(j)
+                print(j)
+        list_phone = list(set(list_phone))
+        if a['data']["meta"]['pagination']['nextPage'] == None:
+            break
+        else:
+            url = a['data']["meta"]['pagination']['nextPage']
+    print(f"Total phone numbers: {len(list_phone)}, save to file phone_numbers.txt")
+    with open("phone_numbers.txt", "a") as f:
+        for i in list_phone:
+            f.write(i + "\n")
+def alonhadatcomvn():
+    def extract_phone_numbers(html_text):
+        soup = BeautifulSoup(html_text, 'html.parser')
+        
+        phone_numbers = []
+        for a_tag in soup.find_all('a', href=True):
+            if 'tel:' in a_tag['href']:
+                href_number = re.sub(r'\D', '', a_tag['href'].split(':')[1])
+                phone_numbers.append(href_number)
+            
+                content_number = re.sub(r'\D', '', a_tag.text)
+                phone_numbers.append(content_number)
+        return list(set(phone_numbers))
+
+    def extract_full_urls_from_html(html_text):
+        soup = BeautifulSoup(html_text, 'html.parser')
+        
+        urls = []
+        for div in soup.find_all('div', class_='ct_title'):
+            a_tag = div.find('a', href=True)
+            if a_tag:
+                full_url = "https://alonhadat.com.vn" + a_tag['href']
+                urls.append(full_url)
+        
+        return urls
+    def extract_page_urls_from_html(html_text):
+        soup = BeautifulSoup(html_text, 'html.parser')
+        
+        urls = []
+        div = soup.find('div', class_='page')
+        if div:
+            for a_tag in div.find_all('a', href=True):
+                full_url = "https://alonhadat.com.vn" + a_tag['href']
+                urls.append(full_url)
+        for i in urls:
+            if i == "https://alonhadat.com.vn#": return urls[urls.index(i)+1]
+        return None
+    check = 'https://alonhadat.com.vn/can-ban-nha.htm'
+    while check !=None:
+        response = requests.get(check).text
+        soup = BeautifulSoup(response, 'html.parser')
+        
+        urls = []
+        phone_numbers = []
+        for div in soup.find_all('div', class_='ct_title'):
+            a_tag = div.find('a', href=True)
+            if a_tag:
+                full_url = "https://alonhadat.com.vn" + a_tag['href']
+                num = requests.get(full_url).text
+                rs = extract_phone_numbers(num)
+                for i in rs: print(i)
+                phone_numbers = list(set(phone_numbers+rs))
+                if rs == []:
+                    print("Website yêu cầu xác minh captcha, vui lòng giải tại web rồi enter để chạy tiếp")
+                    out = input("Enter để chạy tiếp")
+                open("phone_numbers.txt", "a").write("\n".join(phone_numbers))
+        check = extract_page_urls_from_html(response)
+    print(f"Total phone numbers: {len(phone_numbers)}, save to file phone_numbers.txt")
+    with open("phone_numbers.txt", "w") as f:
+        for i in phone_numbers:
+            f.write(i + "\n")
+def batdongsancomvn():
+    current_page = 1
+    list_phone = []
+    while current_page <= 345:
+        s = cloudscraper.create_scraper()
+        a = s.get(f"https://batdongsan.com.vn/nha-moi-gioi/p{current_page}").text
+        soup = BeautifulSoup(a, 'html.parser')
+        divs = soup.find_all('div', class_='re__broker-contact')
+        phone_numbers = []
+        for div in divs:
+            mobile_span = div.find('span', class_='re__broker-mobile')
+            phone_span = div.find('span', class_='re__broker-phone')
+            if mobile_span:
+                phone_numbers.append(mobile_span.get_text())
+                print(mobile_span.get_text())
+            if phone_span:
+                phone_numbers.append(phone_span.get_text())
+                print(phone_span.get_text())
+        list_phone = list(set(list_phone+phone_numbers))
+        with open("phone_numbers.txt", "a") as f:
+            for i in list_phone:
+                f.write(i + "\n")
+        current_page += 1
+    print(f"Total phone numbers: {len(list_phone)}, save to file phone_numbers.txt")
+def main():
+    print("1. batdongsan24h.com.vn")
+    print("2. alonhadat.com.vn")
+    print("3. batdongsan.com.vn")
+    choice = input("Enter your choice: ")
+    if choice == "1":
+        batdongsan24hcomvn()
+    elif choice == "2":
+        alonhadatcomvn()
+    elif choice == "3":
+        batdongsancomvn()
+    else:
+        print("Invalid choice")
+while True:
+    main()
+    if input("Enter 0 to exit, enter to continue") == "0":
+        break
